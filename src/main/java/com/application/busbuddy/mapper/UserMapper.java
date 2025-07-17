@@ -21,7 +21,9 @@ public class UserMapper {
                 .id(dto.getId())
                 .name(dto.getName())
                 .email(dto.getEmail())
+                .password(dto.getPassword()) // ✅ Now included
                 .Role(dto.getRole())
                 .build();
     }
+
 }

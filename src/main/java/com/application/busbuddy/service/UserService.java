@@ -1,14 +1,20 @@
 package com.application.busbuddy.service;
 
-import com.application.busbuddy.model.User;
+import com.application.busbuddy.dto.UserDTO;
+
 import java.util.List;
-import java.util.Optional;
 
 public interface UserService {
-    User createUser(User user);
-    Optional<User> getUserById(Long id);
-    Optional<User> getUserByEmail(String email);
-    List<User> getAllUsers();
-    User updateUser(Long id, User user);
+
+    UserDTO createUser(UserDTO userDTO);
+
+    UserDTO getUserById(Long id);
+
+    UserDTO getUserByEmail(String email);
+
+    List<UserDTO> getAllUsers();
+
+    UserDTO updateUser(Long id, UserDTO userDTO);
+
     void deleteUser(Long id);
 }

@@ -1,6 +1,7 @@
 package com.application.busbuddy.dto;
 
 import com.application.busbuddy.model.enums.Role;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.Email;
