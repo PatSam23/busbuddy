@@ -1,9 +1,6 @@
-package com.application.busbuddy.dto;
+package com.application.busbuddy.dto.request;
 
 import com.application.busbuddy.model.enums.Role;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -14,9 +11,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserDTO {
-
-    private Long id;
+public class UserRequestDTO {
 
     @NotBlank(message = "Name is required")
     private String name;
@@ -29,6 +24,5 @@ public class UserDTO {
     @Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
 
-    @Enumerated(EnumType.STRING)
-    private Role Role;
+    private Role role;
 }
