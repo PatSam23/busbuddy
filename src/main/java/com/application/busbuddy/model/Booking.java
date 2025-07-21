@@ -1,5 +1,6 @@
 package com.application.busbuddy.model;
 
+import com.application.busbuddy.model.enums.BookingStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -24,8 +25,14 @@ public class Booking {
     @JoinColumn(name = "schedule_id")
     private Schedule schedule;
 
+    @Column(nullable = false)
     private double totalAmount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private BookingStatus status;
 
     @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL)
     private List<Seat> seats;
+
 }

@@ -1,0 +1,37 @@
+package com.application.busbuddy.dto.request;
+
+import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.*;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class ScheduleRequestDTO {
+
+    @NotBlank(message = "Source is required")
+    private String source;
+
+    @NotBlank(message = "Destination is required")
+    private String destination;
+
+    @NotNull(message = "Departure time is required")
+    @Future(message = "Departure time must be in the future")
+    private LocalDateTime departureTime;
+
+    @NotNull(message = "Arrival time is required")
+    @Future(message = "Arrival time must be in the future")
+    private LocalDateTime arrivalTime;
+
+    @NotNull(message = "Travel date is required")
+    private LocalDate travelDate;
+
+    @NotNull(message = "Bus ID is required")
+    private Long busId;
+}

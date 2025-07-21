@@ -1,60 +1,81 @@
 package com.application.busbuddy.controller;
 
-import com.application.busbuddy.model.User;
+import com.application.busbuddy.dto.request.ProviderRequestDTO;
+import com.application.busbuddy.dto.request.UserRequestDTO;
+import com.application.busbuddy.dto.response.ProviderResponseDTO;
+import com.application.busbuddy.dto.response.UserResponseDTO;
+import com.application.busbuddy.model.enums.Role;
+import com.application.busbuddy.service.ProviderService;
 import com.application.busbuddy.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
-
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/v1/users")
+@RequiredArgsConstructor
 public class UserController {
 
-    private final UserService userService;
 
-    @Autowired
-    public UserController(UserService userService) {
-        this.userService = userService;
-    }
+    private final UserService userService;
+    private final ProviderService providerService;
 
     @PostMapping
-    public ResponseEntity<User> createUser(@RequestBody User user) {
-        User createdUser = userService.createUser(user);
-        return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable Long id) {
-        Optional<User> user = userService.getUserById(id);
-        return user.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
-    }
-
-    @GetMapping("/email/{email}")
-    public ResponseEntity<User> getUserByEmail(@PathVariable String email) {
-        Optional<User> user = userService.getUserByEmail(email);
-        return user.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    public ResponseEntity<?> createUserOrProvider(@Valid @RequestBody UserRequestDTO dto) {
+        if (dto.getRole() == Role.PROVIDER) {
+            ProviderRequestDTO providerDTO = ProviderRequestDTO.builder()
+                    .name(dto.getName())
+                    .email(dto.getEmail())
+                    .password(dto.getPassword())
+                    .build();
+            return ResponseEntity.ok(providerService.createProvider(providerDTO));
+        } else {
+            return ResponseEntity.ok(userService.createUser(dto));
+        }
     }
 
     @GetMapping
-    public ResponseEntity<List<User>> getAllUsers() {
-        List<User> users = userService.getAllUsers();
-        return new ResponseEntity<>(users, HttpStatus.OK);
+    public ResponseEntity<List<UserResponseDTO>> getAllUsers() {
+        return ResponseEntity.ok(userService.getAllUsers());
+    }
+
+    @GetMapping("/providers")
+    public ResponseEntity<List<ProviderResponseDTO>> getAllProviders() {
+        return ResponseEntity.ok(providerService.getAllProviders());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getUserOrProviderById(@PathVariable Long id, @RequestParam Role role) {
+        if (role == Role.PROVIDER) {
+            return ResponseEntity.ok(providerService.getProviderById(id));
+        } else {
+            return ResponseEntity.ok(userService.getUserById(id));
+        }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody User user) {
-        User updatedUser = userService.updateUser(id, user);
-        return updatedUser != null ? new ResponseEntity<>(updatedUser, HttpStatus.OK)
-                : new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    public ResponseEntity<?> updateUserOrProvider(@PathVariable Long id, @Valid @RequestBody UserRequestDTO dto) {
+        if (dto.getRole() == Role.PROVIDER) {
+            ProviderRequestDTO providerDTO = ProviderRequestDTO.builder()
+                    .name(dto.getName())
+                    .email(dto.getEmail())
+                    .password(dto.getPassword())
+                    .build();
+            return ResponseEntity.ok(providerService.updateProvider(id, providerDTO));
+        } else {
+            return ResponseEntity.ok(userService.updateUser(id, dto));
+        }
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
-        userService.deleteUser(id);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    public ResponseEntity<Void> deleteUserOrProvider(@PathVariable Long id, @RequestParam Role role) {
+        if (role == Role.PROVIDER) {
+            providerService.deleteProvider(id);
+        } else {
+            userService.deleteUser(id);
+        }
+        return ResponseEntity.noContent().build();
     }
 }
