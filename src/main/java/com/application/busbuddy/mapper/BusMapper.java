@@ -1,22 +1,21 @@
 package com.application.busbuddy.mapper;
 
-import com.application.busbuddy.dto.BusDTO;
+import com.application.busbuddy.dto.request.BusRequestDTO;
+import com.application.busbuddy.dto.response.BusResponseDTO;
 import com.application.busbuddy.model.Bus;
 
 public class BusMapper {
-    public static BusDTO toDTO(Bus bus) {
-        return BusDTO.builder()
+    public static BusResponseDTO toDTO(Bus bus) {
+        return BusResponseDTO.builder()
                 .id(bus.getId())
                 .busNumber(bus.getBusNumber())
                 .busType(bus.getBusType())
                 .totalSeats(bus.getTotalSeats())
-                .providerId(bus.getProvider().getId())
                 .build();
     }
 
-    public static Bus toEntity(BusDTO dto) {
+    public static Bus toEntity(BusRequestDTO dto) {
         return Bus.builder()
-                .id(dto.getId())
                 .busNumber(dto.getBusNumber())
                 .busType(dto.getBusType())
                 .totalSeats(dto.getTotalSeats())

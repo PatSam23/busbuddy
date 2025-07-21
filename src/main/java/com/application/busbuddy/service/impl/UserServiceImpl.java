@@ -6,7 +6,6 @@ import com.application.busbuddy.mapper.UserMapper;
 import com.application.busbuddy.model.User;
 import com.application.busbuddy.repository.UserRepository;
 import com.application.busbuddy.service.UserService;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -29,26 +28,39 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponseDTO createUser(UserRequestDTO dto) {
-        User user = UserMapper.toEntity(dto);
+        Optional<User> existingUser = userRepository.findByEmail(dto.getEmail());
+        if (existingUser.isPresent()) {
+            throw new RuntimeException("Email already registered");
+        }
+
+        User user = new User();
+        user.setEmail(dto.getEmail());
+        user.setName(dto.getName());
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
-        return UserMapper.toDTO(userRepository.save(user));
+        user.setRole(dto.getRole());
+
+        userRepository.save(user);
+        return UserMapper.toDTO(user);
     }
 
     @Override
     public UserResponseDTO getUserById(Long id) {
-        Optional<User> user = userRepository.findById(id);
-        return user.map(UserMapper::toDTO).orElse(null);
+        return userRepository.findById(id)
+                .map(UserMapper::toDTO)
+                .orElse(null);
     }
 
     @Override
     public UserResponseDTO getUserByEmail(String email) {
-        Optional<User> user = userRepository.findByEmail(email);
-        return user.map(UserMapper::toDTO).orElse(null);
+        return userRepository.findByEmail(email)
+                .map(UserMapper::toDTO)
+                .orElse(null);
     }
 
     @Override
     public List<UserResponseDTO> getAllUsers() {
-        return userRepository.findAll().stream()
+        return userRepository.findAll()
+                .stream()
                 .map(UserMapper::toDTO)
                 .collect(Collectors.toList());
     }
@@ -56,22 +68,25 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponseDTO updateUser(Long id, UserRequestDTO dto) {
         Optional<User> optionalUser = userRepository.findById(id);
-        if (optionalUser.isEmpty()) return null;
+        if (optionalUser.isPresent()) {
+            User user = optionalUser.get();
+            user.setName(dto.getName());
+            user.setEmail(dto.getEmail());
+            user.setRole(dto.getRole());
 
-        User user = optionalUser.get();
-        user.setName(dto.getName());
-        user.setEmail(dto.getEmail());
-        user.setRole(dto.getRole());
+            if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
+                user.setPassword(passwordEncoder.encode(dto.getPassword()));
+            }
 
-        if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
-            user.setPassword(passwordEncoder.encode(dto.getPassword()));
+            return UserMapper.toDTO(userRepository.save(user));
         }
-
-        return UserMapper.toDTO(userRepository.save(user));
+        return null;
     }
 
     @Override
     public void deleteUser(Long id) {
-        userRepository.deleteById(id);
+        if (userRepository.existsById(id)) {
+            userRepository.deleteById(id);
+        }
     }
 }
