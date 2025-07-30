@@ -4,6 +4,7 @@ import com.application.busbuddy.dto.request.*;
 import com.application.busbuddy.dto.response.*;
 import com.application.busbuddy.model.Booking;
 import com.application.busbuddy.service.ProviderService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -34,12 +35,12 @@ public class ProviderController {
     }
 
     @PostMapping("/schedules")
-    public ResponseEntity<ScheduleResponseDTO> addSchedule(@RequestBody ScheduleRequestDTO dto) {
+    public ResponseEntity<ScheduleResponseDTO> addSchedule(@Valid @RequestBody ScheduleRequestDTO dto) {
         return ResponseEntity.ok(providerService.addSchedule(dto));
     }
 
     @PutMapping("/schedules/{scheduleId}")
-    public ResponseEntity<ScheduleResponseDTO> updateSchedule(@PathVariable Long scheduleId, @RequestBody ScheduleRequestDTO dto) {
+    public ResponseEntity<ScheduleResponseDTO> updateSchedule(@PathVariable Long scheduleId,@Valid @RequestBody ScheduleRequestDTO dto) {
         return ResponseEntity.ok(providerService.updateSchedule(scheduleId, dto));
     }
 

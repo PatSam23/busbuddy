@@ -10,7 +10,7 @@ import java.util.List;
 
 public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     List<Schedule> findByBusIdAndTravelDate(Long busId, LocalDate travelDate);
-
+    List<Schedule> findByBusId(Long busId);
     List<Schedule> findByBusIn(List<Bus> buses);
 
 }
