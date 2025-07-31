@@ -12,15 +12,16 @@ public interface ProviderService {
     List<ProviderResponseDTO> getAllProviders();
     ProviderResponseDTO updateProvider(Long id, ProviderRequestDTO dto);
     void deleteProvider(Long id);
-    BusResponseDTO addBus(Long providerId, BusRequestDTO dto);
-    void deleteBus(Long providerId, Long busId);
-    List<BusResponseDTO> getAllBuses(Long providerId);
+
+    BusResponseDTO addBus(BusRequestDTO dto);
+    void deleteBus(Long busId);
+    List<BusResponseDTO> getAllBuses();
 
     ScheduleResponseDTO addSchedule(ScheduleRequestDTO dto);
     ScheduleResponseDTO updateSchedule(Long scheduleId, ScheduleRequestDTO dto);
     void deleteSchedule(Long scheduleId);
+    List<ScheduleResponseDTO> getSchedulesForProvider();
 
-    List<ScheduleResponseDTO> getSchedulesForProvider(Long providerId);
-    List<Booking> getAllBookingsForProvider(Long providerId);
+    List<Booking> getAllBookingsForProvider();
     void cancelBookingByProvider(Long bookingId);
 }

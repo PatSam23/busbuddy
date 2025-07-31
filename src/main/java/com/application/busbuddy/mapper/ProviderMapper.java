@@ -12,6 +12,7 @@ public class ProviderMapper {
                 .id(provider.getId())
                 .name(provider.getName())
                 .email(provider.getEmail())
+                .role(provider.getRole())
                 .build();
     }
 
@@ -21,6 +22,7 @@ public class ProviderMapper {
                 .name(dto.getName())
                 .email(dto.getEmail())
                 .password(dto.getPassword())
+                .role(dto.getRole())
                 .build();
     }
 }

@@ -31,7 +31,7 @@ public class AuthController {
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             if (passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-                String token = jwtUtil.generateToken(user.getEmail());
+                String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
                 return ResponseEntity.ok(new LoginResponse(token, user.getRole().toString()));
             }
         }
@@ -41,7 +41,7 @@ public class AuthController {
         if (providerOpt.isPresent()) {
             Provider provider = providerOpt.get();
             if (passwordEncoder.matches(request.getPassword(), provider.getPassword())) {
-                String token = jwtUtil.generateToken(provider.getEmail());
+                String token = jwtUtil.generateToken(provider.getEmail(),provider.getRole().name());
                 return ResponseEntity.ok(new LoginResponse(token, "PROVIDER"));
             }
         }

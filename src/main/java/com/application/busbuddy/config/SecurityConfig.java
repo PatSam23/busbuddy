@@ -26,6 +26,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll() // Only allow POST (register)
+                        .requestMatchers("/api/v1/providers/**").hasAuthority("PROVIDER")
                         .requestMatchers("/api/auth/**").permitAll() // Login APIs
                         .anyRequest().authenticated() // All others require JWT
                 )

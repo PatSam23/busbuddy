@@ -1,5 +1,6 @@
 package com.application.busbuddy.model;
 
+import com.application.busbuddy.model.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -25,4 +26,7 @@ public class Provider {
 
     @OneToMany(mappedBy = "provider", cascade = CascadeType.ALL)
     private List<Bus> buses;
+
+    @Enumerated(EnumType.STRING)
+    private Role role; // ✅ Add this
 }

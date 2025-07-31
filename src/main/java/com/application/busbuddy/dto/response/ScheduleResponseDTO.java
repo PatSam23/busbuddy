@@ -18,4 +18,5 @@ public class ScheduleResponseDTO {
     private LocalDateTime arrivalTime;
     private LocalDate travelDate;
     private Long busId;
+    private double pricePerSeat;
 }
