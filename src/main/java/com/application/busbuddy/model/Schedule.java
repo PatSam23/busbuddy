@@ -15,7 +15,9 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class Schedule {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String source;
@@ -24,9 +26,13 @@ public class Schedule {
     private LocalDateTime departureTime;
     private LocalDateTime arrivalTime;
     private LocalDate travelDate;
+
     @ManyToOne
     @JoinColumn(name = "bus_id")
     private Bus bus;
+
+    @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Seat> seats;
 
     @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL)
     private List<Booking> bookings;

@@ -3,10 +3,12 @@ package com.application.busbuddy.dto.request;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -34,4 +36,8 @@ public class ScheduleRequestDTO {
 
     @NotNull(message = "Bus ID is required")
     private Long busId;
+
+    @Positive(message = "Price per seat must be greater than zero")
+    private double pricePerSeat;
+
 }

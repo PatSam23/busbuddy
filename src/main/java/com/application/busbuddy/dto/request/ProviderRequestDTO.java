@@ -1,5 +1,6 @@
 package com.application.busbuddy.dto.request;
 
+import com.application.busbuddy.model.enums.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -25,4 +26,6 @@ public class ProviderRequestDTO {
     @Size(min = 6, message = "Password must be at least 6 characters long")
     private String password;
 
+    @NotBlank(message = "Role is mandatory")
+    private Role role;
 }

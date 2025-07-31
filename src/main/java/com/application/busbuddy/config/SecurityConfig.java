@@ -4,6 +4,7 @@ import com.application.busbuddy.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -24,14 +25,17 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll() // Allow login/signup without token
-                        .anyRequest().permitAll() // All others need token
+                        .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll() // Only allow POST (register)
+                        .requestMatchers("/api/v1/providers/**").hasAuthority("PROVIDER")
+                        .requestMatchers("/api/auth/**").permitAll() // Login APIs
+                        .anyRequest().authenticated() // All others require JWT
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .httpBasic(Customizer.withDefaults());
 
         return http.build();
     }
+
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
