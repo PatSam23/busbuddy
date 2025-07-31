@@ -1,5 +1,6 @@
 package com.application.busbuddy.service.impl;
 
+import com.application.busbuddy.config.JwtUtil;
 import com.application.busbuddy.dto.request.*;
 import com.application.busbuddy.dto.response.*;
 import com.application.busbuddy.exception.ResourceNotFoundException;
@@ -24,6 +25,12 @@ public class ProviderServiceImpl implements ProviderService {
     private final ScheduleRepository scheduleRepository;
     private final BookingRepository bookingRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+
+    private Provider getLoggedInProvider() {
+        String email = JwtUtil.getLoggedInUsername();
+        return providerRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Logged-in provider not found"));
+    }
 
     // -------------------- PROVIDER CRUD --------------------
 
@@ -70,9 +77,8 @@ public class ProviderServiceImpl implements ProviderService {
     // -------------------- BUS MANAGEMENT --------------------
 
     @Override
-    public BusResponseDTO addBus(Long providerId, BusRequestDTO dto) {
-        Provider provider = providerRepository.findById(providerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Provider not found with ID: " + providerId));
+    public BusResponseDTO addBus(BusRequestDTO dto) {
+        Provider provider = getLoggedInProvider();
 
         Bus bus = Bus.builder()
                 .busNumber(dto.getBusNumber())
@@ -85,11 +91,12 @@ public class ProviderServiceImpl implements ProviderService {
     }
 
     @Override
-    public void deleteBus(Long providerId, Long busId) {
+    public void deleteBus(Long busId) {
+        Provider provider = getLoggedInProvider();
         Bus bus = busRepository.findById(busId)
                 .orElseThrow(() -> new ResourceNotFoundException("Bus not found with ID: " + busId));
 
-        if (!bus.getProvider().getId().equals(providerId)) {
+        if (!bus.getProvider().getId().equals(provider.getId())) {
             throw new RuntimeException("Unauthorized deletion attempt");
         }
 
@@ -97,8 +104,9 @@ public class ProviderServiceImpl implements ProviderService {
     }
 
     @Override
-    public List<BusResponseDTO> getAllBuses(Long providerId) {
-        return busRepository.findAllByProviderId(providerId).stream()
+    public List<BusResponseDTO> getAllBuses() {
+        Provider provider = getLoggedInProvider();
+        return busRepository.findAllByProviderId(provider.getId()).stream()
                 .map(this::mapBusToDto)
                 .collect(Collectors.toList());
     }
@@ -107,35 +115,40 @@ public class ProviderServiceImpl implements ProviderService {
 
     @Override
     public ScheduleResponseDTO addSchedule(ScheduleRequestDTO dto) {
+        Provider provider = getLoggedInProvider();
         Bus bus = busRepository.findById(dto.getBusId())
                 .orElseThrow(() -> new ResourceNotFoundException("Bus not found with ID: " + dto.getBusId()));
 
-        // Check for overlapping schedules for the same bus
+        if (!bus.getProvider().getId().equals(provider.getId())) {
+            throw new RuntimeException("Unauthorized to add schedule for this bus");
+        }
+
         List<Schedule> existingSchedules = scheduleRepository.findByBusId(dto.getBusId());
         for (Schedule existing : existingSchedules) {
             boolean overlaps =
                     !dto.getArrivalTime().isBefore(existing.getDepartureTime()) &&
                             !dto.getDepartureTime().isAfter(existing.getArrivalTime()) &&
                             dto.getTravelDate().equals(existing.getTravelDate());
-
             if (overlaps) {
                 throw new RuntimeException("Overlapping schedule exists for this bus on the same date");
             }
         }
 
-        // Create schedule with seats
         Schedule schedule = ScheduleMapper.toEntity(dto, bus);
         Schedule saved = scheduleRepository.save(schedule);
         return ScheduleMapper.toDTO(saved);
     }
 
-
     @Override
     public ScheduleResponseDTO updateSchedule(Long scheduleId, ScheduleRequestDTO dto) {
+        Provider provider = getLoggedInProvider();
         Schedule schedule = scheduleRepository.findById(scheduleId)
-                .orElseThrow(() -> new ResourceNotFoundException("Schedule not found with ID: " + scheduleId));
+                .orElseThrow(() -> new ResourceNotFoundException("Schedule not found"));
 
-        // Prevent overlap with other schedules of the same bus (excluding itself)
+        if (!schedule.getBus().getProvider().getId().equals(provider.getId())) {
+            throw new RuntimeException("Unauthorized to update this schedule");
+        }
+
         List<Schedule> existingSchedules = scheduleRepository.findByBusId(dto.getBusId());
         for (Schedule existing : existingSchedules) {
             if (!existing.getId().equals(scheduleId)) {
@@ -143,7 +156,6 @@ public class ProviderServiceImpl implements ProviderService {
                         !dto.getArrivalTime().isBefore(existing.getDepartureTime()) &&
                                 !dto.getDepartureTime().isAfter(existing.getArrivalTime()) &&
                                 dto.getTravelDate().equals(existing.getTravelDate());
-
                 if (overlaps) {
                     throw new RuntimeException("Updated schedule overlaps with another schedule for this bus");
                 }
@@ -159,17 +171,23 @@ public class ProviderServiceImpl implements ProviderService {
         return ScheduleMapper.toDTO(scheduleRepository.save(schedule));
     }
 
-
     @Override
     public void deleteSchedule(Long scheduleId) {
+        Provider provider = getLoggedInProvider();
         Schedule schedule = scheduleRepository.findById(scheduleId)
-                .orElseThrow(() -> new ResourceNotFoundException("Schedule not found with ID: " + scheduleId));
+                .orElseThrow(() -> new ResourceNotFoundException("Schedule not found"));
+
+        if (!schedule.getBus().getProvider().getId().equals(provider.getId())) {
+            throw new RuntimeException("Unauthorized to delete this schedule");
+        }
+
         scheduleRepository.delete(schedule);
     }
 
     @Override
-    public List<ScheduleResponseDTO> getSchedulesForProvider(Long providerId) {
-        List<Bus> buses = busRepository.findAllByProviderId(providerId);
+    public List<ScheduleResponseDTO> getSchedulesForProvider() {
+        Provider provider = getLoggedInProvider();
+        List<Bus> buses = busRepository.findAllByProviderId(provider.getId());
         return scheduleRepository.findByBusIn(buses).stream()
                 .map(this::mapScheduleToDto)
                 .collect(Collectors.toList());
@@ -178,8 +196,9 @@ public class ProviderServiceImpl implements ProviderService {
     // -------------------- BOOKING VIEW & CANCEL --------------------
 
     @Override
-    public List<Booking> getAllBookingsForProvider(Long providerId) {
-        List<Bus> buses = busRepository.findAllByProviderId(providerId);
+    public List<Booking> getAllBookingsForProvider() {
+        Provider provider = getLoggedInProvider();
+        List<Bus> buses = busRepository.findAllByProviderId(provider.getId());
         List<Schedule> schedules = scheduleRepository.findByBusIn(buses);
         return bookingRepository.findByScheduleIn(schedules);
     }
@@ -216,5 +235,4 @@ public class ProviderServiceImpl implements ProviderService {
                         : 0.0)
                 .build();
     }
-
 }

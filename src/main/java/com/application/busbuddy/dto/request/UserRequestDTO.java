@@ -24,5 +24,6 @@ public class UserRequestDTO {
     @Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
 
+    @NotBlank(message = "Role is mandatory")
     private Role role;
 }
