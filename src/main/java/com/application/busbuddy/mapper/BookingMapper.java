@@ -12,22 +12,18 @@ import java.util.stream.Collectors;
 public class BookingMapper {
 
     // Convert Booking -> BookingResponseDTO
-    public static BookingResponseDTO toBookingResponseDTO(Booking booking) {
+    public BookingResponseDTO toDTO(Booking booking) {
         return BookingResponseDTO.builder()
                 .id(booking.getId())
-                .userId(booking.getUser().getId())
                 .scheduleId(booking.getSchedule().getId())
-                .totalAmount(booking.getTotalAmount())
+                .busName(booking.getSchedule().getBus().getBusNumber())
+                .fromLocation(booking.getSchedule().getSource())
+                .toLocation(booking.getSchedule().getDestination())
+                .departureTime(booking.getSchedule().getDepartureTime())
+                .arrivalTime(booking.getSchedule().getArrivalTime())
                 .status(booking.getStatus())
-                .seats(booking.getSeats().stream()
-                        .map(seat -> SeatDTO.builder()
-                                .id(seat.getId())
-                                .seatNumber(seat.getSeatNumber())
-                                .scheduleId(seat.getSchedule().getId())
-                                .isBooked(seat.isBooked())
-                                .price(seat.getPrice())
-                                .build())
-                        .collect(Collectors.toList()))
+                .totalAmount(booking.getTotalAmount())
+                .seatIds(booking.getSeats().stream().map(Seat::getId).collect(Collectors.toList()))
                 .build();
     }
 

@@ -27,6 +27,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll() // Only allow POST (register)
                         .requestMatchers("/api/v1/providers/**").hasAuthority("PROVIDER")
+                        .requestMatchers("/api/v1/bookings/**").hasAuthority("USER")
                         .requestMatchers("/api/auth/**").permitAll() // Login APIs
                         .anyRequest().authenticated() // All others require JWT
                 )
