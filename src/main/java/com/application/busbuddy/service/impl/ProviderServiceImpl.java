@@ -7,6 +7,7 @@ import com.application.busbuddy.exception.ResourceNotFoundException;
 import com.application.busbuddy.mapper.ProviderMapper;
 import com.application.busbuddy.mapper.ScheduleMapper;
 import com.application.busbuddy.model.*;
+import com.application.busbuddy.model.enums.Role;
 import com.application.busbuddy.repository.*;
 import com.application.busbuddy.service.ProviderService;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,9 @@ public class ProviderServiceImpl implements ProviderService {
     public ProviderResponseDTO createProvider(ProviderRequestDTO dto) {
         Provider provider = ProviderMapper.toEntity(dto);
         provider.setPassword(passwordEncoder.encode(dto.getPassword()));
+        if (provider.getRole() == null) {
+            provider.setRole(Role.PROVIDER); // Set default if missing
+        }
         return ProviderMapper.toDTO(providerRepository.save(provider));
     }
 
