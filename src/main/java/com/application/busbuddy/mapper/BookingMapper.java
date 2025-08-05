@@ -5,10 +5,12 @@ import com.application.busbuddy.dto.request.BookingRequestDTO;
 import com.application.busbuddy.dto.response.BookingResponseDTO;
 import com.application.busbuddy.model.*;
 import com.application.busbuddy.model.enums.BookingStatus;
+import jakarta.persistence.Column;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.stream.Collectors;
-
+@Component
 public class BookingMapper {
 
     // Convert Booking -> BookingResponseDTO
