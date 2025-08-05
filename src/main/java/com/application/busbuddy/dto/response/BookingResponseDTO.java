@@ -1,9 +1,9 @@
 package com.application.busbuddy.dto.response;
 
-import com.application.busbuddy.dto.SeatDTO;
 import com.application.busbuddy.model.enums.BookingStatus;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -12,10 +12,15 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class BookingResponseDTO {
+
     private Long id;
-    private Long userId;
     private Long scheduleId;
-    private double totalAmount;
+    private String busName;
+    private String fromLocation;
+    private String toLocation;
+    private LocalDateTime departureTime;
+    private LocalDateTime arrivalTime;
     private BookingStatus status;
-    private List<SeatDTO> seats;
+    private double totalAmount;
+    private List<Long> seatIds;
 }
