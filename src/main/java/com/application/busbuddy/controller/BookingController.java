@@ -5,6 +5,7 @@ import com.application.busbuddy.dto.response.BookingResponseDTO;
 import com.application.busbuddy.service.BookingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,31 +17,27 @@ public class BookingController {
 
     private final BookingService bookingService;
 
-    // Create a new booking
     @PostMapping
-    public ResponseEntity<BookingResponseDTO> createBooking(@RequestBody BookingRequestDTO bookingRequestDTO) {
-        BookingResponseDTO booking = bookingService.createBooking(bookingRequestDTO);
-        return ResponseEntity.ok(booking);
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<BookingResponseDTO> createBooking(@RequestBody BookingRequestDTO dto) {
+        return ResponseEntity.ok(bookingService.createBooking(dto));
     }
 
-    // Get all bookings by user ID
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<List<BookingResponseDTO>> getBookingsByUserId(@PathVariable Long userId) {
-        List<BookingResponseDTO> bookings = bookingService.getBookingsByUserId(userId);
-        return ResponseEntity.ok(bookings);
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<BookingResponseDTO> getBooking(@PathVariable Long id) {
+        return ResponseEntity.ok(bookingService.getBookingById(id));
     }
 
-    // Get a single booking by its ID
-    @GetMapping("/{bookingId}")
-    public ResponseEntity<BookingResponseDTO> getBookingById(@PathVariable Long bookingId) {
-        BookingResponseDTO booking = bookingService.getBookingById(bookingId);
-        return ResponseEntity.ok(booking);
+    @GetMapping
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<List<BookingResponseDTO>> getAllBookings() {
+        return ResponseEntity.ok(bookingService.getAllBookingsForUser());
     }
 
-    // Cancel a booking by ID
-    @DeleteMapping("/{bookingId}")
-    public ResponseEntity<Void> cancelBooking(@PathVariable Long bookingId) {
-        bookingService.cancelBooking(bookingId);
-        return ResponseEntity.noContent().build();
+    @PutMapping("/{id}/cancel")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<BookingResponseDTO> cancelBooking(@PathVariable Long id) {
+        return ResponseEntity.ok(bookingService.cancelBooking(id));
     }
 }

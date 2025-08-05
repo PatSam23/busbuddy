@@ -1,6 +1,5 @@
 package com.application.busbuddy.service.impl;
 
-import com.application.busbuddy.dto.SeatDTO;
 import com.application.busbuddy.dto.request.BookingRequestDTO;
 import com.application.busbuddy.dto.response.BookingResponseDTO;
 import com.application.busbuddy.exception.ResourceNotFoundException;
@@ -9,95 +8,90 @@ import com.application.busbuddy.model.*;
 import com.application.busbuddy.model.enums.BookingStatus;
 import com.application.busbuddy.repository.*;
 import com.application.busbuddy.service.BookingService;
-import jakarta.transaction.Transactional;
+import com.application.busbuddy.config.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService {
 
     private final BookingRepository bookingRepository;
-    private final UserRepository userRepository;
     private final ScheduleRepository scheduleRepository;
     private final SeatRepository seatRepository;
+    private final BookingMapper bookingMapper;
+    private final JwtUtil jwtUtil;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional
     public BookingResponseDTO createBooking(BookingRequestDTO bookingRequestDTO) {
-        // Fetch user and schedule
-        User user = userRepository.findById(bookingRequestDTO.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + bookingRequestDTO.getUserId()));
+        String username = JwtUtil.getLoggedInUsername();
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         Schedule schedule = scheduleRepository.findById(bookingRequestDTO.getScheduleId())
-                .orElseThrow(() -> new ResourceNotFoundException("Schedule not found with ID: " + bookingRequestDTO.getScheduleId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Schedule not found"));
 
-        // Get seats and validate
-        List<Seat> selectedSeats = seatRepository.findAllById(bookingRequestDTO.getSeatIds());
+        List<Seat> seats = seatRepository.findAllById(bookingRequestDTO.getSeatIds());
 
-        if (selectedSeats.isEmpty()) {
-            throw new ResourceNotFoundException("No seats found with provided IDs.");
-        }
+        double totalAmount = seats.stream().mapToDouble(Seat::getPrice).sum();
 
-        // Check if any seat is already booked
-        for (Seat seat : selectedSeats) {
-            if (seat.isBooked()) {
-                throw new IllegalStateException("Seat already booked: " + seat.getSeatNumber());
-            }
-        }
+        Booking booking = Booking.builder()
+                .user(user)
+                .schedule(schedule)
+                .seats(seats)
+                .status(BookingStatus.CONFIRMED)
+                .totalAmount(totalAmount)
+                .build();
 
-        // Calculate total amount
-        double totalAmount = selectedSeats.stream().mapToDouble(Seat::getPrice).sum();
+        seats.forEach(seat -> seat.setBooking(booking));
 
-        // Set seats as booked
-        for (Seat seat : selectedSeats) {
-            seat.setBooked(true);
-        }
-
-        // Create booking
-        Booking booking = BookingMapper.toBooking(bookingRequestDTO, user, schedule, selectedSeats, totalAmount);
-
-        Booking savedBooking = bookingRepository.save(booking);
-
-        // Save updated seat associations
-        seatRepository.saveAll(selectedSeats);
-
-        return BookingMapper.toBookingResponseDTO(savedBooking);
+        return bookingMapper.toDTO(bookingRepository.save(booking));
     }
 
     @Override
-    public List<BookingResponseDTO> getBookingsByUserId(Long userId) {
-        List<Booking> bookings = bookingRepository.findByUserId(userId);
-        return bookings.stream()
-                .map(BookingMapper::toBookingResponseDTO)
-                .collect(Collectors.toList());
+    public BookingResponseDTO getBookingById(Long id) {
+        String username = JwtUtil.getLoggedInUsername();
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+
+        if (!booking.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Unauthorized access");
+        }
+        return bookingMapper.toDTO(booking);
     }
 
     @Override
-    public BookingResponseDTO getBookingById(Long bookingId) {
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found with ID: " + bookingId));
-        return BookingMapper.toBookingResponseDTO(booking);
+    public List<BookingResponseDTO> getAllBookingsForUser() {
+        String username = JwtUtil.getLoggedInUsername();
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        return bookingRepository.findByUser(user)
+                .stream().map(bookingMapper::toDTO).toList();
     }
 
     @Override
-    @Transactional
-    public void cancelBooking(Long bookingId) {
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found with ID: " + bookingId));
+    public BookingResponseDTO cancelBooking(Long id) {
+        String username = JwtUtil.getLoggedInUsername();
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+
+        if (!booking.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Unauthorized access");
+        }
 
         booking.setStatus(BookingStatus.CANCELLED);
-
-        // Free seats
-        for (Seat seat : booking.getSeats()) {
-            seat.setBooked(false);
-            seat.setBooking(null);
-        }
-
-        seatRepository.saveAll(booking.getSeats());
-        bookingRepository.save(booking);
+        return bookingMapper.toDTO(bookingRepository.save(booking));
     }
 }
