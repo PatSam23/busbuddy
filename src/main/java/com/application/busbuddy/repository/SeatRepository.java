@@ -10,4 +10,6 @@ import java.util.List;
 public interface SeatRepository extends JpaRepository<Seat, Long> {
     List<Seat> findByScheduleId(Long scheduleId);
     List<Seat> findAllById(Iterable<Long> ids);
+
+    List<Seat> findAllByIdForUpdate(List<Long> requestedSeatIds, Long id);
 }

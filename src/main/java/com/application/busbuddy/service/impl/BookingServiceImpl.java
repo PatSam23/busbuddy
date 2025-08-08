@@ -13,7 +13,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -36,7 +38,32 @@ public class BookingServiceImpl implements BookingService {
         Schedule schedule = scheduleRepository.findById(bookingRequestDTO.getScheduleId())
                 .orElseThrow(() -> new ResourceNotFoundException("Schedule not found"));
 
-        List<Seat> seats = seatRepository.findAllById(bookingRequestDTO.getSeatIds());
+        List<Long> requestedSeatIds = bookingRequestDTO.getSeatIds();
+        if (requestedSeatIds == null || requestedSeatIds.isEmpty()) {
+            throw new IllegalArgumentException("No seats selected");
+        }
+
+        // Lock seats to prevent concurrent updates
+        List<Seat> seats = seatRepository.findAllByIdForUpdate(requestedSeatIds, schedule.getId());
+
+        // Validate all requested seats exist
+        if (seats.size() != requestedSeatIds.size()) {
+            throw new ResourceNotFoundException("One or more seats do not exist for this schedule");
+        }
+
+        // Validate seat ownership and availability
+        Set<Long> seen = new HashSet<>();
+        for (Seat seat : seats) {
+            if (!seat.getSchedule().getId().equals(schedule.getId())) {
+                throw new IllegalArgumentException("Seat " + seat.getId() + " does not belong to schedule " + schedule.getId());
+            }
+            if (seat.isBooked() || seat.getBooking() != null) {
+                throw new IllegalStateException("Seat already booked: " + seat.getSeatNumber());
+            }
+            if (!seen.add(seat.getId())) {
+                throw new IllegalArgumentException("Duplicate seat selected: " + seat.getSeatNumber());
+            }
+        }
 
         double totalAmount = seats.stream().mapToDouble(Seat::getPrice).sum();
 
@@ -48,7 +75,11 @@ public class BookingServiceImpl implements BookingService {
                 .totalAmount(totalAmount)
                 .build();
 
-        seats.forEach(seat -> seat.setBooking(booking));
+        // Mark seats and set back-reference
+        seats.forEach(seat -> {
+            seat.setBooked(true);
+            seat.setBooking(booking);
+        });
 
         return bookingMapper.toDTO(bookingRepository.save(booking));
     }
@@ -79,6 +110,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Transactional
     public BookingResponseDTO cancelBooking(Long id) {
         String username = JwtUtil.getLoggedInUsername();
         User user = userRepository.findByEmail(username)
@@ -92,6 +124,13 @@ public class BookingServiceImpl implements BookingService {
         }
 
         booking.setStatus(BookingStatus.CANCELLED);
+        // Release seats to make them available again
+        if (booking.getSeats() != null) {
+            booking.getSeats().forEach(seat -> {
+                seat.setBooked(false);
+                seat.setBooking(null);
+            });
+        }
         return bookingMapper.toDTO(bookingRepository.save(booking));
     }
 }
