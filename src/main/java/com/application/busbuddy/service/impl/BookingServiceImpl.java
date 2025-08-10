@@ -4,9 +4,15 @@ import com.application.busbuddy.dto.request.BookingRequestDTO;
 import com.application.busbuddy.dto.response.BookingResponseDTO;
 import com.application.busbuddy.exception.ResourceNotFoundException;
 import com.application.busbuddy.mapper.BookingMapper;
-import com.application.busbuddy.model.*;
+import com.application.busbuddy.model.Booking;
+import com.application.busbuddy.model.Schedule;
+import com.application.busbuddy.model.Seat;
+import com.application.busbuddy.model.User;
 import com.application.busbuddy.model.enums.BookingStatus;
-import com.application.busbuddy.repository.*;
+import com.application.busbuddy.repository.BookingRepository;
+import com.application.busbuddy.repository.ScheduleRepository;
+import com.application.busbuddy.repository.SeatRepository;
+import com.application.busbuddy.repository.UserRepository;
 import com.application.busbuddy.service.BookingService;
 import com.application.busbuddy.config.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +31,6 @@ public class BookingServiceImpl implements BookingService {
     private final ScheduleRepository scheduleRepository;
     private final SeatRepository seatRepository;
     private final BookingMapper bookingMapper;
-    private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
 
     @Override
@@ -38,30 +43,64 @@ public class BookingServiceImpl implements BookingService {
         Schedule schedule = scheduleRepository.findById(bookingRequestDTO.getScheduleId())
                 .orElseThrow(() -> new ResourceNotFoundException("Schedule not found"));
 
-        List<Long> requestedSeatIds = bookingRequestDTO.getSeatIds();
-        if (requestedSeatIds == null || requestedSeatIds.isEmpty()) {
-            throw new IllegalArgumentException("No seats selected");
+        // Prefer seatNumbers if provided; fallback to seatIds for backward compatibility
+        boolean hasSeatNumbers = bookingRequestDTO.getSeatNumbers() != null && !bookingRequestDTO.getSeatNumbers().isEmpty();
+        boolean hasSeatIds = bookingRequestDTO.getSeatIds() != null && !bookingRequestDTO.getSeatIds().isEmpty();
+
+        if (!hasSeatNumbers && !hasSeatIds) {
+            throw new IllegalArgumentException("No seats selected. Provide seatNumbers (preferred) or seatIds.");
         }
 
-        // Lock seats to prevent concurrent updates
-        List<Seat> seats = seatRepository.findAllByIdForUpdate(requestedSeatIds, schedule.getId());
+        List<Seat> seats;
+        if (hasSeatNumbers) {
+            // Lock seats by (scheduleId, seatNumber) to prevent concurrent booking of the same seats
+            // SeatRepository should have a @Lock(PESSIMISTIC_WRITE) query method:
+            // List<Seat> findByScheduleIdAndSeatNumberIn(Long scheduleId, Collection<String> seatNumbers);
+            List<String> requestedSeatNumbers = bookingRequestDTO.getSeatNumbers();
+            seats = seatRepository.findByScheduleIdAndSeatNumberIn(schedule.getId(), requestedSeatNumbers);
 
-        // Validate all requested seats exist
-        if (seats.size() != requestedSeatIds.size()) {
-            throw new ResourceNotFoundException("One or more seats do not exist for this schedule");
-        }
+            // Validate all requested seatNumbers exist for this schedule
+            if (seats.size() != requestedSeatNumbers.size()) {
+                throw new ResourceNotFoundException("One or more seatNumbers do not exist for this schedule");
+            }
 
-        // Validate seat ownership and availability
-        Set<Long> seen = new HashSet<>();
-        for (Seat seat : seats) {
-            if (!seat.getSchedule().getId().equals(schedule.getId())) {
-                throw new IllegalArgumentException("Seat " + seat.getId() + " does not belong to schedule " + schedule.getId());
+            // Validate seat ownership and availability; check duplicates by seatNumber
+            Set<String> seenNumbers = new HashSet<>();
+            for (Seat seat : seats) {
+                if (!seat.getSchedule().getId().equals(schedule.getId())) {
+                    throw new IllegalArgumentException("Seat " + seat.getSeatNumber() + " does not belong to schedule " + schedule.getId());
+                }
+                if (seat.isBooked() || seat.getBooking() != null) {
+                    throw new IllegalStateException("Seat already booked: " + seat.getSeatNumber());
+                }
+                if (!seenNumbers.add(seat.getSeatNumber())) {
+                    throw new IllegalArgumentException("Duplicate seat selected: " + seat.getSeatNumber());
+                }
             }
-            if (seat.isBooked() || seat.getBooking() != null) {
-                throw new IllegalStateException("Seat already booked: " + seat.getSeatNumber());
+        } else {
+            // Legacy flow using seatIds
+            List<Long> requestedSeatIds = bookingRequestDTO.getSeatIds();
+
+            // Lock seats to prevent concurrent booking of the same seats (by IDs scoped to schedule)
+            seats = seatRepository.findAllByIdForUpdate(requestedSeatIds, schedule.getId());
+
+            // Validate all requested seats exist for this schedule
+            if (seats.size() != requestedSeatIds.size()) {
+                throw new ResourceNotFoundException("One or more seats do not exist for this schedule");
             }
-            if (!seen.add(seat.getId())) {
-                throw new IllegalArgumentException("Duplicate seat selected: " + seat.getSeatNumber());
+
+            // Validate seat ownership and availability; check duplicates by seat ID
+            Set<Long> seen = new HashSet<>();
+            for (Seat seat : seats) {
+                if (!seat.getSchedule().getId().equals(schedule.getId())) {
+                    throw new IllegalArgumentException("Seat " + seat.getId() + " does not belong to schedule " + schedule.getId());
+                }
+                if (seat.isBooked() || seat.getBooking() != null) {
+                    throw new IllegalStateException("Seat already booked: " + seat.getSeatNumber());
+                }
+                if (!seen.add(seat.getId())) {
+                    throw new IllegalArgumentException("Duplicate seat selected: " + seat.getSeatNumber());
+                }
             }
         }
 
@@ -75,7 +114,7 @@ public class BookingServiceImpl implements BookingService {
                 .totalAmount(totalAmount)
                 .build();
 
-        // Mark seats and set back-reference
+        // Mark seats as booked and set back-reference atomically within the transaction
         seats.forEach(seat -> {
             seat.setBooked(true);
             seat.setBooking(booking);
@@ -124,13 +163,15 @@ public class BookingServiceImpl implements BookingService {
         }
 
         booking.setStatus(BookingStatus.CANCELLED);
-        // Release seats to make them available again
+
+        // Release seats so they can be booked again
         if (booking.getSeats() != null) {
             booking.getSeats().forEach(seat -> {
                 seat.setBooked(false);
                 seat.setBooking(null);
             });
         }
+
         return bookingMapper.toDTO(bookingRepository.save(booking));
     }
 }

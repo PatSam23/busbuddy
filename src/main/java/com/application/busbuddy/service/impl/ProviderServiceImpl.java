@@ -4,15 +4,18 @@ import com.application.busbuddy.config.JwtUtil;
 import com.application.busbuddy.dto.request.*;
 import com.application.busbuddy.dto.response.*;
 import com.application.busbuddy.exception.ResourceNotFoundException;
+import com.application.busbuddy.mapper.BusMapper;
 import com.application.busbuddy.mapper.ProviderMapper;
 import com.application.busbuddy.mapper.ScheduleMapper;
 import com.application.busbuddy.model.*;
+import com.application.busbuddy.model.enums.BookingStatus;
 import com.application.busbuddy.model.enums.Role;
 import com.application.busbuddy.repository.*;
 import com.application.busbuddy.service.ProviderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -91,7 +94,7 @@ public class ProviderServiceImpl implements ProviderService {
                 .provider(provider)
                 .build();
 
-        return mapBusToDto(busRepository.save(bus));
+        return BusMapper.toDTO(busRepository.save(bus));
     }
 
     @Override
@@ -111,7 +114,7 @@ public class ProviderServiceImpl implements ProviderService {
     public List<BusResponseDTO> getAllBuses() {
         Provider provider = getLoggedInProvider();
         return busRepository.findAllByProviderId(provider.getId()).stream()
-                .map(this::mapBusToDto)
+                .map(BusMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
@@ -193,7 +196,7 @@ public class ProviderServiceImpl implements ProviderService {
         Provider provider = getLoggedInProvider();
         List<Bus> buses = busRepository.findAllByProviderId(provider.getId());
         return scheduleRepository.findByBusIn(buses).stream()
-                .map(this::mapScheduleToDto)
+                .map(ScheduleMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
@@ -208,35 +211,30 @@ public class ProviderServiceImpl implements ProviderService {
     }
 
     @Override
+    @Transactional
     public void cancelBookingByProvider(Long bookingId) {
+        Provider provider = getLoggedInProvider();
+
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found with ID: " + bookingId));
-        bookingRepository.delete(booking);
-    }
 
-    // -------------------- MAPPING HELPERS --------------------
+        // Authorization: provider must own the bus for this booking's schedule
+        if (booking.getSchedule() == null
+                || booking.getSchedule().getBus() == null
+                || booking.getSchedule().getBus().getProvider() == null
+                || !booking.getSchedule().getBus().getProvider().getId().equals(provider.getId())) {
+            throw new RuntimeException("Unauthorized to cancel this booking");
+        }
 
-    private BusResponseDTO mapBusToDto(Bus bus) {
-        return BusResponseDTO.builder()
-                .id(bus.getId())
-                .busNumber(bus.getBusNumber())
-                .busType(bus.getBusType())
-                .totalSeats(bus.getTotalSeats())
-                .build();
-    }
+        // Mark cancelled and release seats
+        booking.setStatus(BookingStatus.CANCELLED);
+        if (booking.getSeats() != null) {
+            booking.getSeats().forEach(seat -> {
+                seat.setBooked(false);
+                seat.setBooking(null);
+            });
+        }
 
-    private ScheduleResponseDTO mapScheduleToDto(Schedule schedule) {
-        return ScheduleResponseDTO.builder()
-                .id(schedule.getId())
-                .source(schedule.getSource())
-                .destination(schedule.getDestination())
-                .departureTime(schedule.getDepartureTime())
-                .arrivalTime(schedule.getArrivalTime())
-                .travelDate(schedule.getTravelDate())
-                .busId(schedule.getBus().getId())
-                .pricePerSeat(schedule.getSeats() != null && !schedule.getSeats().isEmpty()
-                        ? schedule.getSeats().get(0).getPrice()
-                        : 0.0)
-                .build();
+        bookingRepository.save(booking);
     }
 }

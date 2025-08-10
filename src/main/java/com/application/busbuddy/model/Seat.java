@@ -4,7 +4,13 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "seats")
+@Table(
+        name = "seats",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_seat_schedule_number",
+                columnNames = {"schedule_id", "seat_number"}
+        )
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -16,7 +22,7 @@ public class Seat {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(name = "seat_number", nullable = false)
     private String seatNumber;
 
     private boolean isBooked;
@@ -31,4 +37,7 @@ public class Seat {
     @ManyToOne
     @JoinColumn(name = "schedule_id", nullable = false)
     private Schedule schedule;
+
+    @Version
+    private Long version;
 }
