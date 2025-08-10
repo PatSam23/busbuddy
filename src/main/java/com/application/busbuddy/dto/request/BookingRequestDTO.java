@@ -15,6 +15,7 @@ public class BookingRequestDTO {
     @NotNull(message = "Schedule ID is required")
     private Long scheduleId;
 
-    @NotNull(message = "Seat IDs are required")
     private List<Long> seatIds;
+
+    private List<String> seatNumbers;
 }

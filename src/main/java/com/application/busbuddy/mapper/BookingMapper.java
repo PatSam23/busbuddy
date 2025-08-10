@@ -26,6 +26,7 @@ public class BookingMapper {
                 .status(booking.getStatus())
                 .totalAmount(booking.getTotalAmount())
                 .seatIds(booking.getSeats().stream().map(Seat::getId).collect(Collectors.toList()))
+                .seatNumbers(booking.getSeats().stream().map(Seat::getSeatNumber).collect(Collectors.toList()))
                 .build();
     }
 
