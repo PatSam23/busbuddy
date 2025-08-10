@@ -23,4 +23,5 @@ public class BookingResponseDTO {
     private BookingStatus status;
     private double totalAmount;
     private List<Long> seatIds;
+    private List<String> seatNumbers;
 }
