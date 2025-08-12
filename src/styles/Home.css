@@ -1,0 +1,72 @@
+/* Home Page Styles */
+.home {
+  font-family: Arial, sans-serif;
+}
+
+/* Hero Section */
+.hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 50px;
+  background-color: #f1f5f9; /* Light gray background */
+}
+
+.hero-text {
+  max-width: 50%;
+}
+
+.hero-text h1 {
+  font-size: 2.5rem;
+  color: #1e293b;
+}
+
+.hero-text p {
+  font-size: 1.2rem;
+  margin: 15px 0;
+  color: #475569;
+}
+
+.book-now-btn {
+  background-color: #38bdf8;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.book-now-btn:hover {
+  background-color: #0ea5e9;
+}
+
+.hero-image img {
+  width: 450px;
+  border-radius: 10px;
+}
+
+/* Features Section */
+.features {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.feature-list {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.feature-card {
+  background-color: white;
+  padding: 20px;
+  width: 250px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.feature-card h3 {
+  margin-bottom: 10px;
+}
