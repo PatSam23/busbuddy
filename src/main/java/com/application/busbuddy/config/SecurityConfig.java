@@ -38,8 +38,7 @@ public class SecurityConfig {
                         ).permitAll()
                         .anyRequest().authenticated() // All others require JWT
                 )
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-                .httpBasic(Customizer.withDefaults());
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
