@@ -29,6 +29,13 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/providers/**").hasAuthority("PROVIDER")
                         .requestMatchers("/api/v1/bookings/**").hasAuthority("USER")
                         .requestMatchers("/api/auth/**").permitAll() // Login APIs
+                        .requestMatchers(
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/swagger-ui/index.html",
+                                "/v3/api-docs",
+                                "/v3/api-docs/**"
+                        ).permitAll()
                         .anyRequest().authenticated() // All others require JWT
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
