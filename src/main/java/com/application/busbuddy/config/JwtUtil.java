@@ -2,6 +2,7 @@ package com.application.busbuddy.config;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
@@ -12,11 +13,14 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    private final String SECRET_KEY = "busbuddysecretkeybusbuddysecretkey"; // 256-bit (32+ characters)
-    private final long EXPIRATION_TIME = 86400000; // 1 day
+    @Value("${app.jwt.secret}")
+    private String secretKey;
+
+    @Value("${app.jwt.expiration-ms}")
+    private long EXPIRATION_TIME;
 
     private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+        return Keys.hmacShaKeyFor(secretKey.getBytes());
     }
 
     public String generateToken(String email,  String role) {
