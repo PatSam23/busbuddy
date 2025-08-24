@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -43,6 +44,11 @@ public class BookingServiceImpl implements BookingService {
         Schedule schedule = scheduleRepository.findById(bookingRequestDTO.getScheduleId())
                 .orElseThrow(() -> new ResourceNotFoundException("Schedule not found"));
 
+        // 1. Check booking deadline (e.g., 30 minutes before departure)
+        if (schedule.getDepartureTime().isBefore(LocalDateTime.now().plusMinutes(30))) {
+            throw new IllegalStateException("Cannot book seats less than 30 minutes before departure");
+        }
+
         // Prefer seatNumbers if provided; fallback to seatIds for backward compatibility
         boolean hasSeatNumbers = bookingRequestDTO.getSeatNumbers() != null && !bookingRequestDTO.getSeatNumbers().isEmpty();
         boolean hasSeatIds = bookingRequestDTO.getSeatIds() != null && !bookingRequestDTO.getSeatIds().isEmpty();
@@ -51,11 +57,19 @@ public class BookingServiceImpl implements BookingService {
             throw new IllegalArgumentException("No seats selected. Provide seatNumbers (preferred) or seatIds.");
         }
 
+        // 2. Validate seat count limits before processing
+        int requestedSeatCount = hasSeatNumbers ? bookingRequestDTO.getSeatNumbers().size() : bookingRequestDTO.getSeatIds().size();
+        if (requestedSeatCount > 6) {
+            throw new IllegalArgumentException("Cannot book more than 6 seats per booking");
+        }
+        if (requestedSeatCount == 0) {
+            throw new IllegalArgumentException("At least one seat must be selected");
+        }
+
         List<Seat> seats;
+
         if (hasSeatNumbers) {
             // Lock seats by (scheduleId, seatNumber) to prevent concurrent booking of the same seats
-            // SeatRepository should have a @Lock(PESSIMISTIC_WRITE) query method:
-            // List<Seat> findByScheduleIdAndSeatNumberIn(Long scheduleId, Collection<String> seatNumbers);
             List<String> requestedSeatNumbers = bookingRequestDTO.getSeatNumbers();
             seats = seatRepository.findByScheduleIdAndSeatNumberIn(schedule.getId(), requestedSeatNumbers);
 
@@ -104,8 +118,10 @@ public class BookingServiceImpl implements BookingService {
             }
         }
 
+        // Calculate total amount
         double totalAmount = seats.stream().mapToDouble(Seat::getPrice).sum();
 
+        // Create booking
         Booking booking = Booking.builder()
                 .user(user)
                 .schedule(schedule)
@@ -133,7 +149,7 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
 
         if (!booking.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Unauthorized access");
+            throw new IllegalStateException("Unauthorized access to booking"); // Better exception type
         }
         return bookingMapper.toDTO(booking);
     }
@@ -159,7 +175,17 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
 
         if (!booking.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Unauthorized access");
+            throw new IllegalStateException("Unauthorized access to booking");
+        }
+
+        // Check if booking can be cancelled (e.g., not too close to departure)
+        if (booking.getSchedule().getDepartureTime().isBefore(LocalDateTime.now().plusHours(2))) {
+            throw new IllegalStateException("Cannot cancel booking less than 2 hours before departure");
+        }
+
+        // Check if booking is already cancelled
+        if (booking.getStatus() == BookingStatus.CANCELLED) {
+            throw new IllegalStateException("Booking is already cancelled");
         }
 
         booking.setStatus(BookingStatus.CANCELLED);
