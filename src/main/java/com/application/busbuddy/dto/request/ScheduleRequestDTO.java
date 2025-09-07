@@ -38,4 +38,9 @@ public class ScheduleRequestDTO {
     @Positive(message = "Price per seat must be greater than zero")
     private double pricePerSeat;
 
+    @AssertTrue(message = "Arrival time must be after departure time")
+    private boolean isValidTimeRange() {
+        return arrivalTime != null && departureTime != null &&
+                arrivalTime.isAfter(departureTime);
+    }
 }
