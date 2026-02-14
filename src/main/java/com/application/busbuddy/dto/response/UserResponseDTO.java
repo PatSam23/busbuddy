@@ -14,4 +14,5 @@ public class UserResponseDTO {
     private String name;
     private String email;
     private Role role;
+    private String profilePhotoUrl;
 }

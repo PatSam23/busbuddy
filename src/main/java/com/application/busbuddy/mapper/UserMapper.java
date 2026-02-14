@@ -23,6 +23,7 @@ public class UserMapper {
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole())
+                .profilePhotoUrl(user.getProfilePhotoUrl())
                 .build();
     }
 }

@@ -29,4 +29,26 @@ public class Provider {
 
     @Enumerated(EnumType.STRING)
     private Role role; // ✅ Add this
+
+    @Column(name = "gallery_photos", length = 2000)
+    private String galleryPhotos; // JSON array of photo URLs
+
+    // Convenience methods for gallery photos
+    @Transient
+    public List<String> getGalleryPhotoList() {
+        if (galleryPhotos == null || galleryPhotos.trim().isEmpty()) {
+            return List.of();
+        }
+        // Simple comma-separated approach
+        return List.of(galleryPhotos.split(","));
+    }
+
+    @Transient
+    public void setGalleryPhotoList(List<String> photoUrls) {
+        if (photoUrls == null || photoUrls.isEmpty()) {
+            this.galleryPhotos = "";
+        } else {
+            this.galleryPhotos = String.join(",", photoUrls);
+        }
+    }
 }

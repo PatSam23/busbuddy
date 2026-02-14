@@ -11,6 +11,10 @@ public class BusMapper {
                 .busNumber(bus.getBusNumber())
                 .busType(bus.getBusType())
                 .totalSeats(bus.getTotalSeats())
+                .photo1Url(bus.getPhoto1Url()) // Include all photos
+                .photo2Url(bus.getPhoto2Url())
+                .photo3Url(bus.getPhoto3Url())
+                .allPhotos(bus.getAllPhotos())
                 .build();
     }
 

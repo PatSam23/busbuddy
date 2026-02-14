@@ -25,4 +25,7 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     private Role role;
+
+    @Column(name = "profile_photo_url", length = 500)
+    private String profilePhotoUrl;
 }

@@ -13,6 +13,7 @@ public class ProviderMapper {
                 .name(provider.getName())
                 .email(provider.getEmail())
                 .role(provider.getRole())
+                .galleryPhotos(provider.getGalleryPhotoList())
                 .build();
     }
 

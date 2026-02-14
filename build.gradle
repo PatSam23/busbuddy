@@ -60,6 +60,15 @@ dependencies {
     // Optional: TestContainers for integration tests
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:mysql'
+
+    // Cloudinary for image upload and management
+    implementation 'com.cloudinary:cloudinary-http44:1.34.0'
+
+    // For enhanced multipart file handling (optional, Spring Boot handles basic multipart)
+    implementation 'commons-fileupload:commons-fileupload:1.5'
+
+    // JSON processing (likely already included, but ensuring it's available)
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
 }
 
 // ✅ Configure compiler for Java 21

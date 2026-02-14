@@ -65,6 +65,8 @@ public class SecurityConfig {
                         // Admin endpoints (if any)
                         .requestMatchers("/api/v1/admin/**").hasAnyAuthority("ROLE_ADMIN", "ADMIN")
 
+                        .requestMatchers("/api/v1/images/buses/*/photos").permitAll() // Public bus photos
+                        .requestMatchers("/api/v1/images/**").authenticated() // Other image endpoints require auth
                         // All other requests require authentication
                         .anyRequest().authenticated()
                 )

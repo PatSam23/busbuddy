@@ -3,6 +3,8 @@ package com.application.busbuddy.dto.response;
 import com.application.busbuddy.model.enums.Role;
 import lombok.*;
 
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -13,4 +15,5 @@ public class ProviderResponseDTO {
     private String name;
     private String email;
     private Role role;
+    private List<String> galleryPhotos;
 }
