@@ -5,7 +5,7 @@ BusBuddy is a Spring Boot backend for bus booking. It supports two personas:
 - Users: browse schedules and book seats.
 
 The application uses:
-- Java 17
+- Java 17 
 - Spring Boot 3.x (Web, Security, Validation, Data JPA)
 - JWT-based authentication
 - MySQL for persistence
